@@ -9,6 +9,15 @@
 import AVFoundation
 import UIKit
 
+class CustomPickerController: UIImagePickerController {
+    private let notificationCenter = NotificationCenter.default
+    
+    open override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        notificationCenter.post(name: Notification.Name("galleryDismissed"), object: nil)
+    }
+}
+
 @available(macCatalyst 14.0, *)
 extension CodeScannerView {
     
@@ -32,7 +41,17 @@ extension CodeScannerView {
         public init(showViewfinder: Bool = false, parentView: CodeScannerView) {
             self.parentView = parentView
             self.showViewfinder = showViewfinder
+            
             super.init(nibName: nil, bundle: nil)
+            
+            let notificationCenter = NotificationCenter.default
+            
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(galleryDismissed),
+                name: Notification.Name("galleryDismissed"),
+                object: nil
+            )
         }
 
         required init?(coder: NSCoder) {
@@ -42,9 +61,13 @@ extension CodeScannerView {
         
         func openGallery() {
             isGalleryShowing = true
-            let imagePicker = UIImagePickerController()
+            let imagePicker = CustomPickerController()
             imagePicker.delegate = self
             present(imagePicker, animated: true, completion: nil)
+        }
+        
+        @objc func galleryDismissed() {
+            isGalleryShowing = false
         }
         
         @objc func openGalleryFromButton(_ sender: UIButton) {
@@ -52,7 +75,6 @@ extension CodeScannerView {
         }
 
         public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            isGalleryShowing = false
             
             if let qrcodeImg = info[.originalImage] as? UIImage {
                 let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: nil, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])!
@@ -79,7 +101,6 @@ extension CodeScannerView {
         }
         
         public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            isGalleryShowing = false
             dismiss(animated: true, completion: nil)
         }
 
